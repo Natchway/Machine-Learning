@@ -72,12 +72,3 @@ test_set = scale(test_set)
 
 training_set[,2:3] = scale(training_set[,2:3])
 test_set[,2:3] = scale(test_set[,2:3])
-
-
-
-
-#6.Data Preprocessing Template.
-
-
-
-

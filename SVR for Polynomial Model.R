@@ -1,4 +1,4 @@
-# SVR
+# SVR for POLYNOMIAL MODEL
 
 #1.Importing the dataset.
 dataset = read.csv('Position_Salaries.csv')

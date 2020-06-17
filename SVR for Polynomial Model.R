@@ -45,7 +45,7 @@ y_pred = predict(regressor, data.frame(Level = 6.5))
 
 
 
-# Visualising the SVR results (for higher resolution and smoother curve).
+#6.Visualising the SVR results (for higher resolution and smoother curve).
 # install.packages('ggplot2')
 library(ggplot2)
 x_grid = seq(min(dataset$Level), max(dataset$Level), 0.1)

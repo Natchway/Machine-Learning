@@ -1,4 +1,4 @@
-#MULTIPLE LINEAR REGRESSION
+#MULTIPLE LINEAR REGRESSION(BACKWARD ELIMINATION)
 
 #1.Importing the dataset.
 
@@ -31,11 +31,6 @@ test_set = subset(dataset, split == FALSE)
 
 
 #5.Fitting Multiple Linear Regression to the Training set.
-
-regressor = lm(formula = Profit ~ R.D.Spend + Administration + Marketing.Spend + State,
-               data = training_set)
-
-# Instead of writing the all the independent variables we can use '.'
 
 regressor = lm(formula = Profit ~ .,
                data = training_set)

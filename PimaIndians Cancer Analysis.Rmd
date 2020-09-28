@@ -1,0 +1,85 @@
+---
+output:
+  pdf_document: default
+  html_document: default
+---
+title: "Machine Learning: Predicting Diabetes using Pima Indians Data Set"
+author: "Jyotishman Bandyopadhyay"
+date: "September 25, 2020"
+output: html_document
+---
+
+#Introduction 
+```{r}
+library(neuralnet)
+library(caret)
+library(tidyverse)
+library(mlbench)
+library(e1071)
+
+```
+
+# Chapter 2:
+
+In this chapter we discuss how to store the data frame in an object.  We go over the structure.  Finally we do some quick Exploratory Analysis to see the balance of the data set.
+
+
+```{r}
+data("PimaIndiansDiabetes")
+df <- PimaIndiansDiabetes
+str(PimaIndiansDiabetes)
+ggplot(df, aes(df$diabetes, fill = as.factor(diabetes))) + geom_bar()
+```
+# Chatper 3: 
+
+We create a binary variable for our Independent/Response Variable.  
+
+```{r}
+df$binary <- ifelse(df$diabetes == "neg", 0, 1)
+tibble(df)
+```
+
+
+# Chapter 4: 
+
+We create a Train/Test split using caret's createDataPartition function.
+
+```{r}
+rows <- createDataPartition(df$binary, times =1,
+                            p = .7, list = F)
+train <- df[rows,]
+test <- df[-rows,]
+dim(train)
+dim(test)
+str(train)
+```
+
+# Chapter 5:
+
+We create our Model
+
+```{r}
+train<-train[,-9]
+str(train)
+model <- train(as.factor(binary) ~ ., 
+               data = train,
+               method = "ranger",
+               trControl = trainControl(method = "repeatedcv", number = 2, repeats = 2))
+
+model
+```
+
+# Chapter 6:
+
+We test our model on the Test set and build a Confusion Matrix.
+
+```{r}
+pred_train <- predict(model, train)
+pred_test <- predict(model, test)
+
+pred_train
+
+confusionMatrix(pred_train, as.factor(train$binary))
+confusionMatrix(pred_test, as.factor(test$binary))
+```
+

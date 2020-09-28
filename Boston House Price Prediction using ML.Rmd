@@ -1,0 +1,245 @@
+---
+title: "Multiple Model Comparison on Boston Housing Data"
+author: "Jyotishman"
+output: html_document
+featured_image: "/images/Mansion.jpeg"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Comparing Multiple Models:
+
+Objective:
+
+The objective of this script is to predict the age of a home in the Boston Data Set for the purpose of comparing multiple algorithms.
+
+Since the purpose is to compare models I'll be spending less time looking at the actual model results.  
+
+*Data Set:*
+
+The data set is comprised of 506 rows and 14 columns.  The variables range from crime per capita by town to the pupil-teacher ratio by town.  We will be using Age as our Response Variable.
+
+
+
+<br>
+
+#### Load Packages
+
+<br>
+
+We're going to use the caret package and the MASS package.  The MASS package holds the Boston datset and the Caret package the models we're going to use.
+
+<br>
+
+
+```{r, echo=TRUE, results='hide', include=FALSE}
+library(neuralnet)
+library(caret)
+library(MASS)
+library(tidyverse)
+```
+
+<br>
+
+#### Split the Data into Training and Test Sets
+
+There are a variety of different ways to do this in R.  I'm going to show you the Caret way.  There's a function called createDatapartition.  It's pretty handy.  First we'll store the Boston Data Set in an object called df.  After we will create the rows for the Training and Test set.  We will do a 70/30 Train/Test Split.
+
+```{r}
+data("Boston")
+# load the data set into df
+df <- Boston
+str(df)
+
+# plot the data
+hist(df$age,col="pink")
+
+# store rows for data partition in partition
+partition <- createDataPartition(df$age, times = 1, p = .7, list = F)
+
+
+#create training set
+train <- df[partition,]
+dim(train)
+#subtract out partition, which will leave remaining 30% of the rows.
+
+test <- df[-partition,]
+dim(test) 
+```
+
+#### Build out Models
+
+<br>
+
+We're going to run a Random Forest, the classic Linear Regression model, and a GBM (Gradient Boosting Model).  It's easy to run these simultaneously by copy and pasting the code.   The only change we're going to make is to the method call, which specifies the algorithm we want to use.
+
+We will use Repeated Cross Validation 10 x and repeat that process 2x.  This will make sure that our results are well tested.  
+
+<br>
+
+```{r, results='hide'}
+modranger <- train(age ~ ., train,
+             method = "ranger",
+             trControl = trainControl(method = "repeatedcv",
+                                      number = 10, repeats = 2))
+modlm <- train(age ~ ., train,
+             method = "lm",
+             trControl = trainControl(method = "repeatedcv",
+                                      number = 10, repeats = 2))
+
+modgbm <- modlm <- train(age ~ ., train,
+             method = "gbm",
+             trControl = trainControl(method = "repeatedcv",
+                                      number = 10, repeats = 2))
+
+
+```
+
+#### Let's look at them side by side now.
+
+We will use a call in the caret package called resamples.  This will let us compare the three side by side.  We will plot the models.  
+
+```{r}
+smpl <- resamples(list(Forest = modranger, LM = modlm, GBM = modgbm))
+
+bwplot(smpl)
+
+```
+
+```{r}
+dotplot(smpl)
+```
+
+
+<br>
+
+We can also look at the data using the summary function.
+
+<br>
+
+```{r}
+summary(smpl)
+```
+
+<br>
+
+We can see above that the Random Forest Model performed the best when looking at the mean RMSE.  They were all really close though, which usually isn't the case.  
+
+So let's run the models again this time using some preprocesing steps.  
+
+<br>
+
+#### Center/Scale/PCA
+
+<br>
+
+Adding Preprocessing steps in caret is easy.  We will be centering the data, scaling and performing Principle Component Analysis on the variables to prevent collinearity.  We may lose some ground on the RMSE but our model will be more stable.  
+
+<br>
+```{r, results='hide'}
+modranger <- train(age ~ ., train,
+             method = "ranger",
+             trControl = trainControl(method = "repeatedcv",
+                                      number = 10, repeats = 2),
+             preProcess = c("center", "scale", "pca"))
+modlm <- train(age ~ ., train,
+             method = "lm",
+             trControl = trainControl(method = "repeatedcv",
+                                      number = 10, repeats = 2),
+             preProcess = c("center", "scale", "pca"))
+
+modgbm <- train(age ~ ., train,
+             method = "gbm",
+             trControl = trainControl(method = "repeatedcv",
+                                      number = 10, repeats = 2),
+             preProcess = c("center", "scale", "pca"))
+```
+
+```{r}
+smpl2 <- resamples(list(Forest = modranger, LM = modlm, GBM = modgbm))
+
+bwplot(smpl)
+
+```
+
+<br>
+
+Looks like they're pretty close again.  To get a better idea we need to look at the actual data.  
+
+<br>
+
+```{r}
+summary(smpl2)
+
+```
+
+<br>
+
+As it turns out the GBM and Forest model significantly outperformed the lm model with a mean RMSE of 12.79 compared to lm's of 15.
+
+<br>
+
+
+#### Model on the Test set?
+
+```{r}
+#use the predict function using the model on the test set (data the model hasn't seen)
+predrf <- predict(modranger, test)
+
+#RMSE
+
+error <- predrf - test$age
+
+rmse <- sqrt(mean(error^2))
+
+rmse
+```
+<br>
+
+The model performed slighly worst on the Test set.  This is expected.
+
+<br>
+
+
+```{r}
+predlm <- predict(modlm, test)
+
+#RMSE
+
+errorlm <- predlm - test$age
+
+rmselm <- sqrt(mean(errorlm^2))
+
+rmselm
+```
+
+<br>
+
+lm model didn't perform that well.  But it looks like the standard is a 2 year increase in RMSE.  If my assumption holds the GBM model should perfom at an RMSE of about 15.
+
+<br>
+
+```{r}
+predgbm <- predict(modgbm, test)
+
+#RMSE
+
+errorgbm <- predgbm - test$age
+
+rmsegbm <- sqrt(mean(errorgbm^2))
+
+rmsegbm
+```
+
+<br>
+
+In conclusion, this method is a great way to compare multiple algorithms to see which performs best given the dataset.  Of course there's a whole lot more information we could derive from these models as the job requires.   We could look at the plots and the variable importance, extract the coefficients from the lm model, etc.  
+
+But for tonight -- that's it.  
+
+Thank you for reading.
+
+cs
+
